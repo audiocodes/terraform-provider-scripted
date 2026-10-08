@@ -162,11 +162,18 @@ raw-protocol program (`testdata/minimal.py`) and the memory example.
 
 ## Releasing
 
-Releases are built by GitHub Actions from `v*` tags with
-[GoReleaser](https://goreleaser.com) in the layout the Terraform Registry
-expects, after the test workflow passes, and published as drafts. The
-workflow needs two repository secrets: `GPG_PRIVATE_KEY` (ASCII-armoured) and
-`PASSPHRASE`, for the key whose public part is registered with the Registry.
+A release is a pull request that adds a version heading to the top of
+`CHANGELOG.md`, such as `## 1.2.0`, with the changes under it. When it
+merges, the Release workflow runs the tests, tags the commit `v1.2.0`, builds
+and signs it with [GoReleaser](https://goreleaser.com) in the layout the
+Terraform Registry expects, and publishes the GitHub release with that
+section as its notes; the Registry picks it up from there. Merges that add
+no new version release nothing.
+
+The workflow needs two repository secrets: `GPG_PRIVATE_KEY`
+(ASCII-armoured) and `PASSPHRASE`, for the key whose public part is
+registered with the Registry. A published version is never re-released:
+fix forward with a new version.
 
 ## License
 

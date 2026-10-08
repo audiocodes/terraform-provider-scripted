@@ -1,14 +1,12 @@
-# Build, lint, check generated files, scan, and run the acceptance tests
-# against a range of Terraform versions, on every push and pull request.
+# Build, lint, check generated files, scan, and run the acceptance tests on
+# every pull request. Pushes to main run them through the Release workflow,
+# which releases only after they pass.
 name: Tests
 
 # No paths filter: the checks are required on main, and a workflow that is
 # skipped for a documentation-only change never reports them.
 on:
   pull_request:
-  push:
-    branches:
-      - main
   workflow_call:
 
 permissions:

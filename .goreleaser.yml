@@ -54,7 +54,8 @@ release:
   extra_files:
     - glob: "terraform-registry-manifest.json"
       name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
-  # Releases are drafts so the notes can be reviewed before publishing.
-  draft: true
+  # Published at once: the notes were reviewed with the CHANGELOG.md
+  # change in its pull request.
+  draft: false
 changelog:
   disable: true

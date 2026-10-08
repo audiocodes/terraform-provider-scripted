@@ -1,16 +1,24 @@
-# Build and publish a (draft) GitHub release whenever a v* tag is pushed, in
-# the layout the Terraform Registry ingests, after the test workflow passes.
-# Needs the GPG_PRIVATE_KEY and PASSPHRASE repository secrets for the key
-# registered with the Registry.
+# Release from main: the top heading of CHANGELOG.md names the version
+# ("## 1.2.3"). When a push to main brings a version that has no tag yet,
+# the tests run, the commit is tagged v1.2.3, and GoReleaser builds, signs
+# and publishes the release in the layout the Terraform Registry ingests,
+# with that CHANGELOG section as its notes. Pushes that add no version
+# release nothing. Needs the GPG_PRIVATE_KEY and PASSPHRASE repository
+# secrets for the key registered with the Registry.
 name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -18,9 +26,35 @@ jobs:
     permissions:
       contents: read
 
-  goreleaser:
-    needs: test
+  version:
+    name: Version to release
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: version
+        run: |
+          version=$(sed -nE 's/^## ([0-9]+\.[0-9]+\.[0-9]+)( .*)?$/\1/p' CHANGELOG.md | head -1)
+          if [ -z "$version" ]; then
+            echo "::error file=CHANGELOG.md::no '## X.Y.Z' heading"; exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "v$version is already released; nothing to do"
+            version=
+          else
+            echo "releasing v$version"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  goreleaser:
+    needs: [test, version]
+    if: needs.version.outputs.version != ''
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,6 +64,18 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## " v "( |$)" { on = 1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+      - name: Tag the release
+        run: |
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         id: import_gpg
@@ -39,7 +85,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
-          args: release --clean
+          args: release --clean --release-notes=${{ runner.temp }}/notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
