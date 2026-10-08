@@ -1,0 +1,35 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+~> **Planning runs the program.** A data source is read during every plan,
+so planning a configuration that uses one runs whatever `program` points at.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/scripted_data/data-source.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Protocol
+
+The same as for `scripted_resource`: the program is started once, receives
+one request per line and answers one line per request, echoing
+`request_id`. A data source sends:
+
+```json
+{ "protocol": 1, "request_id": "3", "op": "data", "input": { "...": "the configured input" },
+  "provider_input": { "...": "the provider block's input" }, "context": { "...": "the data source's context" } }
+```
+
+and reads `output` from the answer. `warnings` and `errors` work as for
+`scripted_resource`; `not_implemented` is an error here, since there is
+nothing to fall back to. When `input` depends on values not known until
+apply, the read is deferred and `output` is unknown during the plan.
