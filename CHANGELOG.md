@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- `timeout = "0"`, on the provider or a resource, removes the limit on
+  requests, for programs that bound their own operations. Unset still
+  means 10 minutes.
+
 ## 0.1.0 (2026-10-08)
 
 Initial release.

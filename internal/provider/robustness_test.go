@@ -79,6 +79,36 @@ resource "scripted_resource" "test" {
 	})
 }
 
+// timeout = "0" removes the limit, also over a provider-level one: a request
+// that outlasts the provider's timeout succeeds on a resource that sets "0".
+func TestAccResource_noTimeout(t *testing.T) {
+	b := newBackend(t)
+	config := fmt.Sprintf(`
+provider "scripted" {
+  %s
+  %s
+  timeout = "1s"
+}
+
+resource "scripted_resource" "test" {
+  timeout   = "0"
+  plan_hook = false
+  input     = { name = "unbounded" }
+}
+`, b.program(), b.env("BACKEND_SLEEP", "2"))
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             b.checkDestroy("unbounded"),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check:  resource.TestCheckResourceAttr(testRes, "id", "unbounded"),
+			},
+		},
+	})
+}
+
 // stdout is for responses only: a stray line is not a response and ends the
 // program; an empty response to create is an error.
 func TestAccResource_badStdout(t *testing.T) {

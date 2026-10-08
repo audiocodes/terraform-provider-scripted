@@ -230,7 +230,7 @@ with the same command when you upgrade the provider.
 - `plan_hook` (Boolean) Run the program with `op = "plan"` on every plan, letting it validate the configuration, ask for replacement, supply output values that are known in advance, or add warnings. A program that does not implement `plan` answers `not_implemented`; set this to false to skip the call altogether.
 - `program` (List of String) Command and arguments to run for every operation, for example `["python3", "${path.module}/manage.py"]`. Defaults to the provider's `program`. A relative path is resolved against `working_dir`. Changing this never runs the program by itself.
 - `sensitive_environment` (Map of String, Sensitive) Like `environment`, but hidden in plan output. Stored in state like any other attribute; the provider's `environment` and `input` are the ways to keep values out of state.
-- `timeout` (String) How long the program may take to answer one request for this resource, as a duration such as `"30m"`. Defaults to the provider's `timeout`, else 10 minutes.
+- `timeout` (String) How long the program may take to answer one request for this resource, as a duration such as `"30m"`, or `"0"` for no limit. Defaults to the provider's `timeout`, else 10 minutes.
 - `working_dir` (String) Directory the program runs in. Defaults to the provider's `working_dir`, then Terraform's working directory.
 
 ### Read-Only
@@ -468,7 +468,9 @@ apply that touches the resource.
 to the moment it is answered — **including time spent waiting for the
 program to get to it**, so size it for the queue as well as for one
 operation when a program handles requests one at a time. It is 10 minutes
-unless set on the resource or the provider. A request that is not answered
+unless set on the resource or the provider; `"0"` removes the limit, for a
+program that bounds its own operations (a stuck one then holds Terraform
+until it is interrupted). A request that is not answered
 in time fails on its own, with a message saying so; a late answer to it,
 however late, is discarded (the provider issues the ids, so it knows one of
 its own), and the requests in flight beside it are unaffected, since every

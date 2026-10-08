@@ -123,7 +123,7 @@ func (s programSettings) resolve(ctx context.Context, p *providerData, diags *di
 			prog.Env[k] = v
 		}
 	}
-	if t := parseTimeout(s.Timeout, diags); t > 0 {
+	if t := parseTimeout(s.Timeout, diags); t != 0 {
 		prog.Timeout = t
 	}
 	if diags.HasError() {
@@ -143,15 +143,20 @@ func mustTF(d types.Dynamic) tftypesValue {
 	return v
 }
 
-// parseTimeout turns a duration attribute into a time.Duration, zero for null.
+// parseTimeout turns a duration attribute into a time.Duration: zero for
+// null (use the default), noTimeout for "0" (no bound).
 func parseTimeout(s types.String, diags *diag.Diagnostics) time.Duration {
 	if s.IsNull() || s.IsUnknown() || s.ValueString() == "" {
 		return 0
 	}
 	d, err := time.ParseDuration(s.ValueString())
 	if err != nil || d < 0 {
-		diags.AddError("Invalid timeout", fmt.Sprintf("%q is not a duration such as \"30s\", \"10m\" or \"1h\".", s.ValueString()))
+		diags.AddError("Invalid timeout", fmt.Sprintf("%q is not a duration such as \"30s\", \"10m\" or \"1h\", "+
+			"nor \"0\" for no limit.", s.ValueString()))
 		return 0
+	}
+	if d == 0 {
+		return noTimeout
 	}
 	return d
 }
