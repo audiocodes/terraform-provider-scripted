@@ -37,7 +37,7 @@ jobs:
         with:
           version: v2.14.0
       - name: Lint Python (helper, examples, test programs)
-        uses: astral-sh/ruff-action@0c50076f12c38c3d0115b7b519b54a91cb9cf0ad # v3.5.0
+        uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89 # v4.1.0
         with:
           args: check --select E,F,W,B --line-length 120 helpers examples internal/provider/testdata
       - name: Vulnerability scan
@@ -97,7 +97,7 @@ jobs:
           total=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
           echo "total coverage: ${total}%"
           awk -v t="$total" 'BEGIN { if (t + 0 < 85) { print "coverage below 85%"; exit 1 } }'
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-${{ strategy.job-index }}
           path: coverage.out
