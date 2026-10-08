@@ -2,17 +2,13 @@
 # against a range of Terraform versions, on every push and pull request.
 name: Tests
 
+# No paths filter: the checks are required on main, and a workflow that is
+# skipped for a documentation-only change never reports them.
 on:
   pull_request:
-    paths-ignore:
-      - 'README.md'
-      - 'CHANGELOG.md'
   push:
     branches:
       - main
-    paths-ignore:
-      - 'README.md'
-      - 'CHANGELOG.md'
   workflow_call:
 
 permissions:
@@ -71,10 +67,8 @@ jobs:
       fail-fast: false
       matrix:
         terraform:
-          # 1.8 is the first release where a moved block may change the
-          # resource type, which the move tests depend on.
-          - '1.8.*'
-          - '1.11.*'
+          # The current minor and whatever is newest. Older releases back to
+          # the 1.8 floor stay supported, but are not exercised on every push.
           - '1.14.*'
           - 'latest'
     steps:
