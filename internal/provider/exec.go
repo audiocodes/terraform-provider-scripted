@@ -174,7 +174,8 @@ type program struct {
 	// InheritEnvironment passes Terraform's own environment on to the
 	// program; when false only Env and a minimal set of variables are set.
 	InheritEnvironment bool
-	// Timeout bounds one request; zero means defaultTimeout.
+	// Timeout bounds one request; zero means defaultTimeout, noTimeout means
+	// none.
 	Timeout time.Duration
 	// Grace overrides defaultGrace when stopping the program (tests).
 	Grace time.Duration
@@ -191,9 +192,16 @@ const maxResponse = 64 << 20
 // message rather than a Terraform run that hangs.
 const defaultTimeout = 10 * time.Minute
 
-// effectiveTimeout is the request bound to apply.
+// noTimeout is how `timeout = "0"` is held: requests are not bounded at
+// all, for programs that bound their own operations.
+const noTimeout time.Duration = -1
+
+// effectiveTimeout is the request bound to apply; zero means none.
 func (p program) effectiveTimeout() time.Duration {
-	if p.Timeout > 0 {
+	switch {
+	case p.Timeout == noTimeout:
+		return 0
+	case p.Timeout > 0:
 		return p.Timeout
 	}
 	return defaultTimeout

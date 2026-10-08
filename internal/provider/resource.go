@@ -130,7 +130,8 @@ func (r *scriptedResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"timeout": schema.StringAttribute{
 				Optional: true,
 				MarkdownDescription: "How long the program may take to answer one request for this resource, as a " +
-					"duration such as `\"30m\"`. Defaults to the provider's `timeout`, else 10 minutes.",
+					"duration such as `\"30m\"`, or `\"0\"` for no limit. Defaults to the provider's `timeout`, else " +
+					"10 minutes.",
 			},
 			"input": schema.DynamicAttribute{
 				Optional: true,

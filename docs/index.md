@@ -94,7 +94,7 @@ variable "api_token" {
 - `inherit_environment` (Boolean) Pass Terraform's own environment (cloud credentials, `TF_VAR_*`, ...) on to the program. Defaults to true. When false the program sees only `PATH`, `HOME` and a few locale variables plus what `environment` sets.
 - `input` (Dynamic) Values every program run by this provider receives as `provider_input`, in whatever shape suits it: server addresses, credentials, defaults. Unlike a resource's `input` it is not managed state, and like all provider configuration it is never stored in state.
 - `program` (List of String) Command and arguments run for every resource that does not set its own `program`, for example `["python3", "${path.root}/scripts/manage.py"]`. Required for `terraform import` and for `moved` blocks from other resource types, which have no resource configuration to take a program from. A command without a path separator is looked up in `PATH`; a relative path is resolved against `working_dir`.
-- `timeout` (String) How long the program may take to answer one request, as a duration such as `"30m"`, for resources that set no `timeout` of their own; 10 minutes when unset. A request not answered in time fails on its own; a program that stops answering altogether is stopped.
+- `timeout` (String) How long the program may take to answer one request, as a duration such as `"30m"`, for resources that set no `timeout` of their own; 10 minutes when unset, no limit at all when `"0"`. A request not answered in time fails on its own; a program that stops answering altogether is stopped.
 - `working_dir` (String) Directory the program runs in when the resource sets no `working_dir`.
 
 ## What is delegated to the program

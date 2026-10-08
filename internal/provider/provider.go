@@ -121,8 +121,9 @@ func (p *scriptedProvider) Schema(_ context.Context, _ provider.SchemaRequest, r
 			"timeout": schema.StringAttribute{
 				Optional: true,
 				MarkdownDescription: "How long the program may take to answer one request, as a duration such as " +
-					"`\"30m\"`, for resources that set no `timeout` of their own; 10 minutes when unset. A request not " +
-					"answered in time fails on its own; a program that stops answering altogether is stopped.",
+					"`\"30m\"`, for resources that set no `timeout` of their own; 10 minutes when unset, no limit at all " +
+					"when `\"0\"`. A request not answered in time fails on its own; a program that stops answering " +
+					"altogether is stopped.",
 			},
 		},
 	}

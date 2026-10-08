@@ -325,6 +325,9 @@ func TestProgram_defaultTimeout(t *testing.T) {
 	if got := (program{Timeout: time.Second}).effectiveTimeout(); got != time.Second {
 		t.Errorf("explicit timeout wins, got %s", got)
 	}
+	if got := (program{Timeout: noTimeout}).effectiveTimeout(); got != 0 {
+		t.Errorf(`timeout = "0" means no bound, got %s`, got)
+	}
 }
 
 func TestProcessingDuration(t *testing.T) {

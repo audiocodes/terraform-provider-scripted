@@ -159,6 +159,11 @@ func TestSmallHelpers(t *testing.T) {
 	if parseTimeout(types.StringValue("-1s"), &d3); d3.ErrorsCount() != 2 {
 		t.Error("negative timeout should error")
 	}
+	for _, zero := range []string{"0", "0s", "0m"} {
+		if got := parseTimeout(types.StringValue(zero), &d3); got != noTimeout || d3.ErrorsCount() != 2 {
+			t.Errorf("timeout %q should mean no limit, got %s", zero, got)
+		}
+	}
 }
 
 func TestChangedAttributes(t *testing.T) {

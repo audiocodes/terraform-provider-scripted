@@ -264,7 +264,9 @@ apply that touches the resource.
 to the moment it is answered — **including time spent waiting for the
 program to get to it**, so size it for the queue as well as for one
 operation when a program handles requests one at a time. It is 10 minutes
-unless set on the resource or the provider. A request that is not answered
+unless set on the resource or the provider; `"0"` removes the limit, for a
+program that bounds its own operations (a stuck one then holds Terraform
+until it is interrupted). A request that is not answered
 in time fails on its own, with a message saying so; a late answer to it,
 however late, is discarded (the provider issues the ids, so it knows one of
 its own), and the requests in flight beside it are unaffected, since every
