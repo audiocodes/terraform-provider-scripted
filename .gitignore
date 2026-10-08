@@ -10,3 +10,7 @@
 *.tfstate.*
 *.tfplan
 examples/**/store/
+
+# Python
+__pycache__/
+*.py[co]

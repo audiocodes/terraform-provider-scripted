@@ -1,0 +1,64 @@
+---
+page_title: "{{.ProviderShortName}} Provider"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.ProviderShortName}} Provider
+
+{{ .Description | trimspace }}
+
+Use it when the thing you need to manage has no provider of its own and you
+would rather write a short script against its API than a Go provider. Unlike
+`null_resource`/`local-exec` or the generic "shell" providers, the script is a
+full participant in Terraform's lifecycle:
+
+- **Drift detection**: `read` refreshes the desired-state attribute (`input`),
+  so changes made outside Terraform appear in the plan — and once the config
+  is brought in line, the plan is clean again without running anything.
+- **Field-level plans**: `input` is a real structured value, so the plan shows
+  which fields change, and the script can ask for replacement from a plan
+  hook.
+- **No needless work**: `update` only runs when `input` changes. Changing the
+  program, its arguments or environment just records the new settings.
+- **The program decides**: every lifecycle step (`plan`, `create`, `read`,
+  `update`, `delete`, `import`, `move`) is offered to the program; it answers
+  `not_implemented` for whatever it leaves to the provider's defaults.
+- **One process per command**: the program is started once and streams
+  requests, so interpreter start-up is paid once, not per operation.
+- **Migration**: a `moved` block from another resource type, such as
+  `czmirek/script`, is handed to the program as raw state.
+- **Data too**: `scripted_data` runs the program read-only.
+
+## Security
+
+**`terraform plan` executes your program.** `plan` and `read` run during a
+plan, so planning a configuration runs whatever `program` points at, with
+Terraform's own environment (cloud credentials, `TF_VAR_*`, tokens) available
+to it unless `inherit_environment = false`. In a "plan on pull request" setup
+this means a pull request that changes the program, or the file it points
+at, runs that code. Treat `program` like any other code your CI executes,
+and keep credentials the program needs in the provider's `environment` or
+`input`, which never reach state.
+
+## Example
+
+{{ tffile "examples/provider/provider.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## What is delegated to the program
+
+| Terraform concept                       | status                                                  |
+|-----------------------------------------|---------------------------------------------------------|
+| plan (replace, promised output, errors) | yes, `plan`                                             |
+| create / read / update / delete         | yes                                                     |
+| import                                  | yes, `import` (identity, plain or JSON id)              |
+| moved from another resource type        | yes, `move` (Terraform ≥ 1.8)                           |
+| private state                           | yes, `private`                                          |
+| data source                             | yes, `scripted_data`                                    |
+| resource identity (Terraform ≥ 1.12)    | yes: the `id`                                           |
+| state schema upgrades                   | not needed: `input`/`output` are dynamic                |
+| ephemeral resources (Terraform ≥ 1.10)  | planned                                                 |
+| write-only attributes (Terraform ≥ 1.11)| planned, for secrets in `input`                         |
+| provider-defined functions, actions     | no                                                      |
