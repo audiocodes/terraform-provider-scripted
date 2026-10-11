@@ -11,8 +11,9 @@ rest stays the same.
 """
 import json
 import os
+from typing import Optional
 
-from scripted import resource
+from scripted import Request, Response, resource
 
 STORE_DIR = os.environ.get("STORE_DIR", "store")
 r = resource()
@@ -53,7 +54,7 @@ def output_for(record_id, record):
 # --- the operations ----------------------------------------------------------
 
 @r.plan
-def plan(req):
+def plan(req: Request) -> Optional[Response]:
     """Reject bad input early and ask for replacement when `kind` changes."""
     if req.action in ("create", "update") and (req.input.get("size") or 0) < 0:
         r.fail("size must be >= 0")
@@ -61,10 +62,11 @@ def plan(req):
         return r.replace()
     if req.action in ("create", "update") and (req.input.get("size") or 0) > 8:
         return r.ok(warnings=["size %s is unusually large" % req.input["size"]])
+    return None
 
 
 @r.create
-def create(req):
+def create(req: Request) -> Response:
     record_id = req.input["name"]
     if store_get(record_id) is not None:
         r.fail("record %r already exists" % record_id)
@@ -74,7 +76,7 @@ def create(req):
 
 
 @r.read
-def read(req):
+def read(req: Request) -> Response:
     record = store_get(req.id)
     if record is None:
         return r.gone()
@@ -84,7 +86,7 @@ def read(req):
 
 
 @r.update
-def update(req):
+def update(req: Request) -> Response:
     record = store_get(req.id)
     if record is None:
         r.fail("record %r has disappeared" % req.id)
@@ -98,12 +100,12 @@ def update(req):
 
 
 @r.delete
-def delete(req):
+def delete(req: Request) -> None:
     store_delete(req.id)
 
 
 @r.import_
-def import_(req):
+def import_(req: Request) -> Response:
     """`terraform import scripted_resource.x <record id>`."""
     record = store_get(req.id)
     if record is None:
@@ -112,7 +114,7 @@ def import_(req):
 
 
 @r.move
-def move(req):
+def move(req: Request) -> Response:
     """A `moved` block from czmirek/script: adopt the record it managed."""
     if req.source["type"] != "script":
         return r.not_implemented()
@@ -124,7 +126,7 @@ def move(req):
 
 
 @r.data
-def data(req):
+def data(req: Request) -> Response:
     """Answer a scripted_data lookup."""
     record = store_get(req.input["name"])
     if record is None:

@@ -34,6 +34,14 @@ jobs:
         uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89 # v4.1.0
         with:
           args: check --select E,F,W,B --line-length 120 helpers examples internal/provider/testdata
+      - name: Type-check Python (helper strict, examples as an editor sees them)
+        env:
+          EX: examples/resources/scripted_resource
+        run: |
+          pipx run --spec mypy==2.4.0 mypy --strict --python-version 3.10 helpers/python/scripted.py
+          MYPYPATH=helpers/python pipx run --spec mypy==2.4.0 mypy --python-version 3.10 $EX/manage.py $EX/rest_api.py
+          pipx run pyright==1.1.414 --pythonversion 3.8 helpers/python/scripted.py
+          PYTHONPATH=helpers/python pipx run pyright==1.1.414 --pythonversion 3.8 $EX/manage.py $EX/rest_api.py $EX/memory.py
       - name: Vulnerability scan
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 

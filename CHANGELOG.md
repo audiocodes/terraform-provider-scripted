@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0
+
+- The Python helper is typed: `Request` declares its fields, the handler
+  decorators keep a handler's own signature, and `r.ok()` and `r.replace()`
+  take the response fields as typed keyword arguments, so an editor completes
+  `req.` (with `req: Request` on the handler) and flags a mistyped field such
+  as `r.ok(ouput=...)`. A misspelled field is now a `TypeError` instead of
+  being sent to the provider. `Action`, `Response` and `Handler` are exported
+  for annotations. Every public function has a docstring.
+- `Request.id` is `""` and `Request.source` is `{}` when a request does not
+  carry them (they were `None`), so handlers need no checks for fields their
+  operation always has.
+- The examples are annotated, and CI type-checks the helper (mypy strict,
+  pyright against Python 3.8) and the examples.
+
 ## 0.3.0
 
 - The Python helper no longer needs copying into your project. The provider

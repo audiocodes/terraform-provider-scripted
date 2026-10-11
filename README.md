@@ -38,27 +38,27 @@ resource "scripted_resource" "record" {
 The program, with the helper the provider puts on its `PYTHONPATH`:
 
 ```python
-from scripted import resource
+from scripted import Request, Response, resource
 r = resource()
 
 @r.create
-def create(req):
+def create(req: Request) -> Response:
     rec = api.create(req.input)
     return r.ok(id=rec["id"], output={"addr": rec["addr"]})
 
 @r.read
-def read(req):
+def read(req: Request) -> Response:
     rec = api.get(req.id)
     if rec is None:
         return r.gone()
     return r.ok(input=req.managed(rec["spec"]), output={"addr": rec["addr"]})
 
 @r.update
-def update(req):
+def update(req: Request) -> Response:
     return r.ok(output={"addr": api.update(req.id, req.input)["addr"]})
 
 @r.delete
-def delete(req):
+def delete(req: Request) -> None:
     api.delete(req.id)
 
 r.main()
@@ -112,6 +112,12 @@ plain functions, the
 `not_implemented` rule for free, exceptions turned into errors, stdout kept
 clean, and `python3 manage.py --op read --id x` for trying a program without
 Terraform.
+
+**It is typed.** `Request` declares its fields, the decorators keep your
+handlers' signatures, and `r.ok()` takes the protocol's response fields as
+typed keywords, so with `req: Request` on a handler an editor completes
+`req.` and flags a mistyped field such as `r.ok(ouput=...)` before
+Terraform runs it. CI checks the helper with mypy (strict) and pyright.
 
 **Handlers run concurrently by default**, on a pool of worker threads, so
 ten resources take the time of one. Keep handlers to local variables, put
