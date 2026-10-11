@@ -17,6 +17,8 @@
   starts.
 - On Windows, a program that has to be stopped is killed at once instead of
   after a grace period spent waiting for a SIGTERM that cannot be sent.
+- Built with Go 1.26.9 and golang.org/x/net v0.60.0, for the HTTP/2 and
+  net/http advisories GO-2026-6608, -6611, -6612, -6613 and -6617.
 
 ## 0.2.0
 
