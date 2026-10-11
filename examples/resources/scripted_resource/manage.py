@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Example program for scripted_resource: records stored as JSON files.
 
-Uses the vendored helper (scripted.py, next to this file): handlers are
+Uses the helper the provider puts on PYTHONPATH (`scripted`): handlers are
 plain functions, anything not handled answers not_implemented, exceptions
 become errors, and `python3 manage.py --op read --id web-1` runs one
-operation by hand. Replace the store_* functions with calls to whatever
-system you manage and the rest stays the same.
-
-Keep heavy imports (requests, cloud SDKs) inside the handlers that need
-them: the program is started afresh for every operation.
+operation by hand (with a copy of the helper from
+`terraform-provider-scripted --emit-python-helper > scripted.py`). Replace
+the store_* functions with calls to whatever system you manage and the
+rest stays the same.
 """
 import json
 import os

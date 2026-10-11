@@ -63,6 +63,9 @@ type providerData struct {
 	inputUnknown bool
 	// timeout applies to every request that sets none of its own.
 	timeout time.Duration
+	// pythonHelperDir holds this provider version's scripted.py; it goes on
+	// every program's PYTHONPATH. Empty if it could not be written anywhere.
+	pythonHelperDir string
 }
 
 func (p *scriptedProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -70,7 +73,12 @@ func (p *scriptedProvider) Metadata(_ context.Context, _ provider.MetadataReques
 	resp.Version = p.version
 }
 
-func (p *scriptedProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *scriptedProvider) Schema(ctx context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	// Terraform loads the schema on validate as well as plan, so the helper
+	// is on disk for editors from the first `terraform validate`. A failure
+	// is logged; Configure reports it.
+	_, _ = pythonHelperDir(ctx, p.version)
+
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manage any resource with a program you write: the provider hands each " +
 			"lifecycle operation to the program as JSON on stdin and records what it prints. " +
@@ -157,6 +165,12 @@ func (p *scriptedProvider) Configure(ctx context.Context, req provider.Configure
 		data.input = in
 	}
 	data.timeout = parseTimeout(cfg.Timeout, &resp.Diagnostics)
+	if dir, err := pythonHelperDir(ctx, p.version); err != nil {
+		resp.Diagnostics.AddWarning("Python helper not available",
+			"Programs will not find `scripted` on their PYTHONPATH: "+err.Error())
+	} else {
+		data.pythonHelperDir = dir
+	}
 	p.data = data
 	resp.ResourceData = data
 	resp.DataSourceData = data

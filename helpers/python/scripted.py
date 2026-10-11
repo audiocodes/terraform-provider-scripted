@@ -1,11 +1,14 @@
 # ---------------------------------------------------------------------------
 #  scripted.py -- helper library for programs run by terraform-provider-scripted
 #
-#  DO NOT EDIT. This file is vendored: it is a copy of the one shipped with
-#  the provider, and local changes will be lost the next time it is refreshed.
-#  To update it (or to get the copy matching your provider version), run:
+#  DO NOT EDIT. The provider writes this file itself, for its own version, to
+#  .terraform/scripted/python/ (or $TF_DATA_DIR/scripted/python/), and puts
+#  that directory on the PYTHONPATH of every program it runs, so programs
+#  import it without keeping a copy. Point your editor there for completion
+#  (VS Code: "python.analysis.extraPaths"). To run a program without
+#  Terraform, or to pin a copy next to it (which then takes precedence), run:
 #
-#      terraform-provider-scripted --emit-helper > scripted.py
+#      terraform-provider-scripted --emit-python-helper > scripted.py
 #
 #  Provider version this copy came from: see HELPER_VERSION below.
 #  Protocol version it speaks:           see PROTOCOL below.
@@ -18,8 +21,8 @@
 # ---------------------------------------------------------------------------
 """Helper for programs run by the Terraform provider `scripted`.
 
-Vendor this file next to your program (it needs only the standard library)
-and write handlers for the operations you support:
+The provider puts this module on your program's PYTHONPATH (it needs only the
+standard library); write handlers for the operations you support:
 
     from scripted import resource
     r = resource()
@@ -73,8 +76,9 @@ What it does for you:
   the number of workers, ``resource(concurrent=False)`` handles one request
   at a time.
 
-Get the copy that matches your provider with
-``terraform-provider-scripted --emit-helper > scripted.py``.
+Programs run by the provider import the copy matching its version. For an
+editor or for running without Terraform, get it with
+``terraform-provider-scripted --emit-python-helper > scripted.py``.
 """
 
 import argparse
@@ -92,7 +96,7 @@ __all__ = ["resource", "Request", "ScriptError", "PROTOCOL", "HELPER_VERSION"]
 PROTOCOL = 1
 
 #: The provider version this file was emitted by ("dev" in the source tree;
-#: `terraform-provider-scripted --emit-helper` fills in its own version).
+#: the provider fills in its own version when it writes or emits this file).
 HELPER_VERSION = "dev"
 
 

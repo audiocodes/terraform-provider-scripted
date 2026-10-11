@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0
+
+- The Python helper no longer needs copying into your project. The provider
+  writes the copy matching its version to
+  `.terraform/scripted/python/scripted.py` (under `$TF_DATA_DIR` when set) as
+  soon as Terraform loads it, so on `terraform validate` or any plan, and
+  appends that directory to every program's `PYTHONPATH`;
+  `SCRIPTED_PYTHON_HELPER` holds the file's path. A copy next to the program
+  still takes precedence. If the data directory cannot be written, the user
+  cache directory and then the system temporary directory are used.
+- `--emit-helper` is now `--emit-python-helper`, leaving room for helpers in
+  other languages.
+- The variables the provider injects (`SCRIPTED_PROTOCOL`, `PYTHONPATH`,
+  `SCRIPTED_PYTHON_HELPER`) are logged, at debug level, when a program
+  starts.
+- On Windows, a program that has to be stopped is killed at once instead of
+  after a grace period spent waiting for a SIGTERM that cannot be sent.
+
 ## 0.2.0
 
 - `timeout = "0"`, on the provider or a resource, removes the limit on

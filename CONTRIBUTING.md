@@ -8,9 +8,8 @@ Thanks for taking an interest. A few things that make changes easy to take:
 - `make build` builds, `make test` runs the unit tests, `make testacc` the
   acceptance tests (they drive real Terraform against the fake backend in
   `internal/provider/testdata`), `make lint` runs golangci-lint, and
-  `make generate` refreshes `docs/` and the vendored helper copy in
-  `examples/`. CI fails if `make generate` produces a diff, so run it before
-  pushing.
+  `make generate` refreshes `docs/`. CI fails if `make generate` produces a
+  diff, so run it before pushing.
 
 ## Changing the protocol
 

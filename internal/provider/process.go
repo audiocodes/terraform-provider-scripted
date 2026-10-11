@@ -127,7 +127,8 @@ func (p program) start(ctx context.Context) (*process, error) {
 	}
 	cmd := exec.Command(p.Args[0], p.Args[1:]...)
 	cmd.Dir = p.WorkingDir
-	cmd.Env = p.environment()
+	var injectedVars []envVar
+	cmd.Env, injectedVars = p.environment()
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -159,8 +160,13 @@ func (p program) start(ctx context.Context) (*process, error) {
 		envNames = append(envNames, k)
 	}
 	sort.Strings(envNames)
+	injected := map[string]string{}
+	for _, kv := range injectedVars {
+		injected[kv.name] = kv.value
+	}
 	tflog.Debug(ctx, "scripted: started program", map[string]any{
-		"args": p.Args, "working_dir": p.WorkingDir, "environment": envNames, "pid": cmd.Process.Pid,
+		"args": p.Args, "working_dir": p.WorkingDir, "environment": envNames,
+		"injected_environment": injected, "pid": cmd.Process.Pid,
 	})
 	return proc, nil
 }
@@ -209,6 +215,7 @@ func (proc *process) reap() {
 
 // kill ends the program: close its stdin (a conforming program exits on
 // EOF), then SIGTERM, then SIGKILL, with the grace period between steps.
+// Where SIGTERM cannot be sent (Windows), the kill follows at once.
 func (proc *process) kill() {
 	_ = proc.stdin.Close()
 	go proc.reap()
@@ -217,11 +224,12 @@ func (proc *process) kill() {
 		return
 	case <-time.After(proc.grace):
 	}
-	_ = proc.cmd.Process.Signal(sigterm)
-	select {
-	case <-proc.waited:
-		return
-	case <-time.After(proc.grace):
+	if err := proc.cmd.Process.Signal(sigterm); err == nil {
+		select {
+		case <-proc.waited:
+			return
+		case <-time.After(proc.grace):
+		}
 	}
 	_ = proc.cmd.Process.Kill()
 	<-proc.waited
