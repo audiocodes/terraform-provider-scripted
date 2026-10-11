@@ -112,13 +112,15 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
-      # The tests start programs as "python3"; Windows only has "python".
+      # The tests start programs as "python3"; make sure Windows has one.
       - name: python3 on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $py = (Get-Command python).Source
-          Copy-Item $py (Join-Path (Split-Path $py) 'python3.exe')
+          if (-not (Get-Command python3 -ErrorAction SilentlyContinue)) {
+            $py = (Get-Command python).Source
+            Copy-Item $py (Join-Path (Split-Path $py) 'python3.exe')
+          }
           python3 --version
       - run: go mod download
       - env:

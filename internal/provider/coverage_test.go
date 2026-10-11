@@ -169,6 +169,7 @@ resource "scripted_resource" "test" {
 // A moved block whose program fails the move surfaces the failure on the
 // read that follows.
 func TestAccResource_moveFailure(t *testing.T) {
+	requireCzmirekScript(t)
 	b := newBackend(t)
 	wd, _ := os.Getwd()
 	shim := filepath.Join(wd, "testdata", "czmirek_backend.py")

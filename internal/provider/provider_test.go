@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -148,5 +149,22 @@ func (b backend) checkDestroy(names ...string) resource.TestCheckFunc {
 			}
 		}
 		return nil
+	}
+}
+
+// czmirekPlatforms are those czmirek/script v0.1.2, the provider the move
+// tests migrate from, is published for (no darwin/arm64, for one).
+var czmirekPlatforms = map[string]bool{
+	"darwin/amd64": true, "freebsd/386": true, "freebsd/amd64": true, "freebsd/arm": true,
+	"freebsd/arm64": true, "linux/386": true, "linux/amd64": true, "linux/arm": true,
+	"linux/arm64": true, "windows/386": true, "windows/amd64": true,
+}
+
+// requireCzmirekScript skips a test that needs czmirek/script where it
+// cannot be installed.
+func requireCzmirekScript(t *testing.T) {
+	t.Helper()
+	if platform := runtime.GOOS + "/" + runtime.GOARCH; !czmirekPlatforms[platform] {
+		t.Skipf("czmirek/script has no build for %s", platform)
 	}
 }

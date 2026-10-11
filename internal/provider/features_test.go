@@ -156,6 +156,7 @@ resource "scripted_resource" "test" {
 // to the program's move operation, which adopts the object completely: the
 // plan after the move is a no-op.
 func TestAccResource_moveViaProgram(t *testing.T) {
+	requireCzmirekScript(t)
 	b := newBackend(t)
 	wd, _ := os.Getwd()
 	shim := filepath.Join(wd, "testdata", "czmirek_backend.py")
