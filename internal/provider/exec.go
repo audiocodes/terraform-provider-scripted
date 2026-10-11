@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"syscall"
@@ -179,6 +181,9 @@ type program struct {
 	Timeout time.Duration
 	// Grace overrides defaultGrace when stopping the program (tests).
 	Grace time.Duration
+	// PythonHelperDir, if set, holds scripted.py and is added to the
+	// program's PYTHONPATH.
+	PythonHelperDir string
 	// ProviderInput and Context ride along with every request.
 	ProviderInput any
 	Context       any
@@ -211,13 +216,15 @@ func (p program) effectiveTimeout() time.Duration {
 // after its stdin closes, and again after SIGTERM.
 const defaultGrace = 10 * time.Second
 
-// sigterm is what a program receives when it must stop; on platforms where
-// signalling is not supported the kill that follows does the job.
+// sigterm is what a program receives when it must stop; where it cannot be
+// sent (Windows), the program is killed instead.
 var sigterm os.Signal = syscall.SIGTERM
 
 // environment builds the program's environment: Terraform's own (unless
-// inheritance is off), then the provider's and resource's variables.
-func (p program) environment() []string {
+// inheritance is off), then the provider's and resource's variables, then
+// what the provider injects (see injected), which it also returns on its own
+// for the log.
+func (p program) environment() ([]string, []envVar) {
 	var env []string
 	if p.InheritEnvironment {
 		env = os.Environ()
@@ -229,7 +236,6 @@ func (p program) environment() []string {
 			}
 		}
 	}
-	env = append(env, fmt.Sprintf("SCRIPTED_PROTOCOL=%d", protocolVersion))
 	keys := make([]string, 0, len(p.Env))
 	for k := range p.Env {
 		keys = append(keys, k)
@@ -238,7 +244,46 @@ func (p program) environment() []string {
 	for _, k := range keys {
 		env = append(env, k+"="+p.Env[k])
 	}
-	return env
+	vars := p.injected(env)
+	for _, kv := range vars {
+		env = append(env, kv.name+"="+kv.value)
+	}
+	return env, vars
+}
+
+// envVar is one injected environment variable.
+type envVar struct{ name, value string }
+
+// injected lists the variables the provider sets for the program on top of
+// env: SCRIPTED_PROTOCOL, and, when the Python helper is available, its
+// directory appended to PYTHONPATH (so entries set by the user come first)
+// and SCRIPTED_PYTHON_HELPER, the helper file's path. A later entry for the
+// same name replaces an earlier one when the program starts.
+func (p program) injected(env []string) []envVar {
+	vars := []envVar{{"SCRIPTED_PROTOCOL", fmt.Sprint(protocolVersion)}}
+	if p.PythonHelperDir == "" {
+		return vars
+	}
+	path := p.PythonHelperDir
+	if existing := lookupEnv(env, "PYTHONPATH"); existing != "" {
+		path = existing + string(os.PathListSeparator) + path
+	}
+	return append(vars,
+		envVar{"PYTHONPATH", path},
+		envVar{"SCRIPTED_PYTHON_HELPER", filepath.Join(p.PythonHelperDir, pythonHelperFile)})
+}
+
+// lookupEnv returns the value env gives name, the last one if it appears
+// more than once, as the program would see it. Names are case-insensitive
+// on Windows.
+func lookupEnv(env []string, name string) string {
+	for i := len(env) - 1; i >= 0; i-- {
+		k, v, ok := strings.Cut(env[i], "=")
+		if ok && (k == name || runtime.GOOS == "windows" && strings.EqualFold(k, name)) {
+			return v
+		}
+	}
+	return ""
 }
 
 // parseResponse decodes exactly one JSON object from a response line.

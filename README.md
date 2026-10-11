@@ -35,8 +35,7 @@ resource "scripted_resource" "record" {
 }
 ```
 
-The program, with the vendored helper (`terraform-provider-scripted
---emit-helper > scripted.py`):
+The program, with the helper the provider puts on its `PYTHONPATH`:
 
 ```python
 from scripted import resource
@@ -96,10 +95,20 @@ without notice.
 
 ## The helper
 
-`helpers/python/scripted.py` is a standard-library-only file meant to be
-copied next to your program (`terraform-provider-scripted
---emit-helper > scripted.py` prints the copy matching your provider, with its
-version stamped in). It gives you handlers as plain functions, the
+`helpers/python/scripted.py` is a standard-library-only module that ships
+inside the provider. Programs do not keep a copy: the provider writes the one
+matching its version to `.terraform/scripted/python/scripted.py` (under
+`$TF_DATA_DIR` when that is set) as soon as Terraform loads it, so on
+`terraform validate` or any plan, and appends that directory to every
+program's `PYTHONPATH`; `SCRIPTED_PYTHON_HELPER` holds the file's path. Point
+your editor there for completion (VS Code: `"python.analysis.extraPaths":
+[".terraform/scripted/python"]`). A copy next to your program takes
+precedence, for pinning it or running without Terraform:
+`terraform-provider-scripted --emit-python-helper > scripted.py` prints the
+one matching your provider, with its version stamped in. If the data
+directory cannot be written, the provider uses the user cache directory, then
+the system temporary directory, and logs where. It gives you handlers as
+plain functions, the
 `not_implemented` rule for free, exceptions turned into errors, stdout kept
 clean, and `python3 manage.py --op read --id x` for trying a program without
 Terraform.
@@ -178,4 +187,4 @@ fix forward with a new version.
 ## License
 
 [Apache License 2.0](LICENSE), provider and helper alike; the helper may be
-vendored into any project.
+copied into any project.

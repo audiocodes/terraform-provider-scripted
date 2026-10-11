@@ -6,11 +6,11 @@ Objects are JSON files under $HB_DIR. Knobs:
 """
 import json
 import os
-import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "helpers", "python"))
-from scripted import resource  # noqa: E402
+# No copy of the helper and no sys.path changes: the provider puts the helper
+# on PYTHONPATH, which is what this backend's tests rely on.
+from scripted import resource
 
 r = resource()
 BASE = os.environ["HB_DIR"]

@@ -5,7 +5,11 @@ package provider
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -96,14 +100,69 @@ func TestProgramEnvironment(t *testing.T) {
 	t.Setenv("SCRIPTED_TEST_SECRET", "s")
 	p := program{Env: map[string]string{"B": "2", "A": "1"}}
 	p.InheritEnvironment = true
-	env := strings.Join(p.environment(), "\n")
+	envList, _ := p.environment()
+	env := strings.Join(envList, "\n")
 	if !strings.Contains(env, "SCRIPTED_TEST_SECRET=s") || !strings.Contains(env, "SCRIPTED_PROTOCOL=1") || !strings.Contains(env, "\nA=1\nB=2") {
 		t.Errorf("inherited environment wrong:\n%s", env)
 	}
 	p.InheritEnvironment = false
-	env = strings.Join(p.environment(), "\n")
+	envList, _ = p.environment()
+	env = strings.Join(envList, "\n")
 	if strings.Contains(env, "SCRIPTED_TEST_SECRET") || !strings.Contains(env, "PATH=") || !strings.Contains(env, "A=1") {
 		t.Errorf("clean environment wrong:\n%s", env)
+	}
+}
+
+// The helper's directory goes on PYTHONPATH after whatever the user set
+// there, the helper's path is passed on, and both are reported as injected.
+func TestProgramEnvironment_pythonHelper(t *testing.T) {
+	sep := string(os.PathListSeparator)
+	dir := filepath.Join(t.TempDir(), "python")
+	helper := filepath.Join(dir, "scripted.py")
+
+	t.Setenv("PYTHONPATH", "")
+	p := program{PythonHelperDir: dir, InheritEnvironment: true}
+	env, injected := p.environment()
+	if got := lookupEnv(env, "PYTHONPATH"); got != dir {
+		t.Errorf("PYTHONPATH = %q, want the helper's directory %q", got, dir)
+	}
+	if got := lookupEnv(env, "SCRIPTED_PYTHON_HELPER"); got != helper {
+		t.Errorf("SCRIPTED_PYTHON_HELPER = %q, want %q", got, helper)
+	}
+	want := []envVar{{"SCRIPTED_PROTOCOL", "1"}, {"PYTHONPATH", dir}, {"SCRIPTED_PYTHON_HELPER", helper}}
+	if fmt.Sprint(injected) != fmt.Sprint(want) {
+		t.Errorf("injected = %v, want %v", injected, want)
+	}
+
+	t.Setenv("PYTHONPATH", "inherited")
+	env, _ = p.environment()
+	if got := lookupEnv(env, "PYTHONPATH"); got != "inherited"+sep+dir {
+		t.Errorf("inherited PYTHONPATH should come first, got %q", got)
+	}
+	p.Env = map[string]string{"PYTHONPATH": "configured"}
+	env, _ = p.environment()
+	if got := lookupEnv(env, "PYTHONPATH"); got != "configured"+sep+dir {
+		t.Errorf("configured PYTHONPATH should come first, got %q", got)
+	}
+
+	env, injected = (program{InheritEnvironment: true}).environment()
+	if lookupEnv(env, "SCRIPTED_PYTHON_HELPER") != "" || len(injected) != 1 {
+		t.Errorf("without a helper only SCRIPTED_PROTOCOL is injected: %v", injected)
+	}
+}
+
+func TestLookupEnv(t *testing.T) {
+	t.Parallel()
+	env := []string{"A=1", "B=x=y", "A=2", "broken"}
+	if lookupEnv(env, "A") != "2" || lookupEnv(env, "B") != "x=y" || lookupEnv(env, "C") != "" {
+		t.Error("lookupEnv should return the last value of a name, with any = in it")
+	}
+	want := ""
+	if runtime.GOOS == "windows" {
+		want = "2"
+	}
+	if got := lookupEnv(env, "a"); got != want {
+		t.Errorf("lookupEnv(a) = %q on %s", got, runtime.GOOS)
 	}
 }
 

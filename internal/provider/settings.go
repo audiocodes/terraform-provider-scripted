@@ -109,6 +109,7 @@ func (s programSettings) resolve(ctx context.Context, p *providerData, diags *di
 		prog.InheritEnvironment = p.inheritEnvironment
 		prog.Timeout = p.timeout
 		prog.ProviderInput = p.input
+		prog.PythonHelperDir = p.pythonHelperDir
 	}
 	if s.WorkingDir.ValueString() != "" {
 		prog.WorkingDir = s.WorkingDir.ValueString()
