@@ -19,7 +19,7 @@ import json
 import urllib.error
 import urllib.request
 
-from scripted import resource
+from scripted import Request, Response, resource
 
 # Handlers run in threads, one per request Terraform has in flight. An
 # opener (like a requests.Session) is not thread-safe, so each thread gets
@@ -51,13 +51,15 @@ def output_for(obj):
 
 
 @r.create
-def create(req):
+def create(req: Request) -> Response:
     obj = call(req, "POST", body=req.input)
+    if obj is None:
+        r.fail("POST returned no object (404 or an empty body)")
     return r.ok(id=obj["id"], output=output_for(obj))
 
 
 @r.read
-def read(req):
+def read(req: Request) -> Response:
     obj = call(req, "GET", "/" + req.id)
     if obj is None:
         return r.gone()
@@ -65,18 +67,18 @@ def read(req):
 
 
 @r.update
-def update(req):
+def update(req: Request) -> Response:
     obj = call(req, "PUT", "/" + req.id, body=req.input)
     return r.ok(output=output_for(obj))
 
 
 @r.delete
-def delete(req):
+def delete(req: Request) -> None:
     call(req, "DELETE", "/" + req.id)
 
 
 @r.import_
-def import_(req):
+def import_(req: Request) -> Response:
     obj = call(req, "GET", "/" + req.id)
     if obj is None:
         r.fail("no object %r" % req.id)
