@@ -427,6 +427,7 @@ resource "scripted_resource" "override" {
 // the id carries across, the first plan is an in-place update that fills in
 // program and input and runs update once, and after that the plan is clean.
 func TestAccResource_moveFromCzmirekScript(t *testing.T) {
+	requireCzmirekScript(t)
 	b := newBackend(t)
 	wd, _ := os.Getwd()
 	shim := filepath.Join(wd, "testdata", "czmirek_backend.py")

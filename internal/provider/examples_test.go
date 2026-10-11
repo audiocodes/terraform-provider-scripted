@@ -3,14 +3,13 @@
 package provider
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
 
@@ -108,28 +107,35 @@ func startRESTServer(t *testing.T, token string) string {
 	_ = l.Close()
 	wd, _ := os.Getwd()
 	cmd := exec.Command("python3", filepath.Join(wd, "testdata", "rest_server.py"), fmt.Sprint(port), token)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = cmd.Process.Kill(); _ = cmd.Wait() })
-	ready := make(chan struct{})
-	go func() {
-		sc := bufio.NewScanner(stdout)
-		for sc.Scan() {
-			if strings.TrimSpace(sc.Text()) == "ready" {
-				close(ready)
-				return
-			}
+	exited := make(chan error, 1)
+	go func() { exited <- cmd.Wait() }()
+	t.Cleanup(func() {
+		_ = cmd.Process.Kill()
+		<-exited
+	})
+	// Ready once it accepts connections; a slow first start of the
+	// interpreter (macOS runners) gets a generous allowance.
+	listen := fmt.Sprintf("127.0.0.1:%d", port)
+	deadline := time.Now().Add(60 * time.Second)
+	for {
+		if c, err := net.DialTimeout("tcp", listen, time.Second); err == nil {
+			_ = c.Close()
+			break
 		}
-	}()
-	select {
-	case <-ready:
-	case <-time.After(10 * time.Second):
-		t.Fatal("rest_server.py did not become ready")
+		select {
+		case err := <-exited:
+			exited <- err
+			t.Fatalf("rest_server.py exited (%v):\n%s", err, stderr.String())
+		case <-time.After(100 * time.Millisecond):
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("rest_server.py did not start listening on %s:\n%s", listen, stderr.String())
+		}
 	}
 	return fmt.Sprintf("http://127.0.0.1:%d/widgets", port)
 }
