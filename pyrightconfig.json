@@ -1,0 +1,5 @@
+{
+  "include": ["helpers/python", "examples"],
+  "pythonVersion": "3.8",
+  "extraPaths": ["helpers/python"]
+}
