@@ -40,8 +40,8 @@ jobs:
         run: |
           pipx run --spec mypy==2.4.0 mypy --strict --python-version 3.10 helpers/python/scripted.py
           MYPYPATH=helpers/python pipx run --spec mypy==2.4.0 mypy --python-version 3.10 $EX/manage.py $EX/rest_api.py
-          pipx run pyright==1.1.414 --pythonversion 3.8 helpers/python/scripted.py
-          PYTHONPATH=helpers/python pipx run pyright==1.1.414 --pythonversion 3.8 $EX/manage.py $EX/rest_api.py $EX/memory.py
+          # pyrightconfig.json: Python 3.8, helper on the import path.
+          pipx run pyright==1.1.414
       - name: Vulnerability scan
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
